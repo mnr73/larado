@@ -1,0 +1,53 @@
+services:
+    laravel:
+        container_name: "${APP_NAME:-larado}-laravel"
+        build: "./larado/php"
+        image: "larado-${LARADO_IMAGE_NAME:-project}-laravel"
+        restart: unless-stopped
+        volumes:
+            - ".:/var/www/html"
+
+    mysql:
+        container_name: "${APP_NAME:-larado}-mysql"
+        build: "./larado/mysql"
+        image: "larado-${LARADO_IMAGE_NAME:-project}-mysql"
+        restart: unless-stopped
+        environment:
+            MYSQL_ROOT_PASSWORD: "${DB_PASSWORD}"
+            MYSQL_DATABASE: "${DB_DATABASE}"
+            MYSQL_USER: "${DB_USERNAME}"
+            MYSQL_PASSWORD: "${DB_PASSWORD}"
+            MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+        cap_add:
+            - SYS_NICE
+        volumes:
+            - "larado-mysql:/var/lib/mysql"
+        healthcheck:
+            test: ["CMD", "mysqladmin", "ping", "-p${DB_PASSWORD}"]
+            retries: 3
+            timeout: 5s
+
+    redis:
+        container_name: "${APP_NAME:-larado}-redis"
+        build: "./larado/redis"
+        image: "larado-${LARADO_IMAGE_NAME:-project}-redis"
+        restart: unless-stopped
+        volumes:
+            - "larado-redis:/data"
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            retries: 3
+            timeout: 5s
+
+    phpmyadmin:
+        container_name: "${APP_NAME:-larado}-phpmyadmin"
+        image: phpmyadmin
+        restart: unless-stopped
+        environment:
+            - PMA_HOST=mysql
+
+volumes:
+    larado-mysql:
+        driver: local
+    larado-redis:
+        driver: local

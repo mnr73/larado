@@ -1,0 +1,25 @@
+FROM larado
+
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY 000-default.conf /etc/apache2/sites-available
+
+# scheduler
+RUN echo "* * * * * www-data /usr/local/bin/php /var/www/html/artisan schedule:run >> /dev/null 2>&1" > /etc/cron.d/scheduler
+RUN chmod 0644 /etc/cron.d/scheduler \
+    && crontab /etc/cron.d/scheduler
+
+COPY start-container /usr/local/bin/start-container
+RUN chmod +x /usr/local/bin/start-container
+
+RUN mkdir -p /var/www/.config/psysh
+RUN chmod -R 755 /var/www/.config
+RUN chown -R www-data:www-data /var/www/.config
+
+RUN mkdir -p /var/www/.composer
+RUN chmod -R 755 /var/www/.composer
+RUN chown -R www-data:www-data /var/www/.composer
+
+# you can add php config 👇
+# RUN echo "memory_limit = 2048M" > $PHP_INI_DIR/conf.d/config.ini
+
+ENTRYPOINT ["start-container"]

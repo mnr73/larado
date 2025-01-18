@@ -1,0 +1,35 @@
+services:
+    laravel:
+        extends:
+            file: docker-compose-common.yml
+            service: laravel
+        ports:
+            - "8001:80"
+            # - "8201:8201"
+        restart: unless-stopped
+        depends_on:
+            - mysql
+            - redis
+
+    mysql:
+        extends:
+            file: docker-compose-common.yml
+            service: mysql
+
+    redis:
+        extends:
+            file: docker-compose-common.yml
+            service: redis
+
+    phpmyadmin:
+        extends:
+            file: docker-compose-common.yml
+            service: phpmyadmin
+        ports:
+            - "8081:80"
+
+volumes:
+    mnr-mysql:
+        driver: local
+    mnr-redis:
+        driver: local
