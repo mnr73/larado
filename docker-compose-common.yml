@@ -1,16 +1,16 @@
 services:
     laravel:
-        container_name: "${APP_NAME:-larado}-laravel"
+        container_name: "${LARADO_NAME:-larado}-laravel"
         build: "./larado/php"
-        image: "larado-${LARADO_IMAGE_NAME:-project}-laravel"
+        image: "larado-${LARADO_NAME:-project}-laravel"
         restart: unless-stopped
         volumes:
             - ".:/var/www/html"
 
     mysql:
-        container_name: "${APP_NAME:-larado}-mysql"
+        container_name: "${LARADO_NAME:-larado}-mysql"
         build: "./larado/mysql"
-        image: "larado-${LARADO_IMAGE_NAME:-project}-mysql"
+        image: "larado-${LARADO_NAME:-project}-mysql"
         restart: unless-stopped
         environment:
             MYSQL_ROOT_PASSWORD: "${DB_PASSWORD}"
@@ -28,9 +28,9 @@ services:
             timeout: 5s
 
     redis:
-        container_name: "${APP_NAME:-larado}-redis"
+        container_name: "${LARADO_NAME:-larado}-redis"
         build: "./larado/redis"
-        image: "larado-${LARADO_IMAGE_NAME:-project}-redis"
+        image: "larado-${LARADO_NAME:-project}-redis"
         restart: unless-stopped
         volumes:
             - "larado-redis:/data"
@@ -40,7 +40,7 @@ services:
             timeout: 5s
 
     phpmyadmin:
-        container_name: "${APP_NAME:-larado}-phpmyadmin"
+        container_name: "${LARADO_NAME:-larado}-phpmyadmin"
         image: phpmyadmin
         restart: unless-stopped
         environment:
