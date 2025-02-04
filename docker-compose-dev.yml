@@ -29,7 +29,7 @@ services:
             - "8081:80"
 
 volumes:
-    mnr-mysql:
+    larado-mysql:
         driver: local
-    mnr-redis:
+    larado-redis:
         driver: local
