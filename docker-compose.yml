@@ -3,6 +3,13 @@ services:
         extends:
             file: docker-compose-common.yml
             service: laravel
+        build:
+            context: ./larado/php
+            dockerfile: dockerfile-dev
+        environment:
+            XDEBUG_MODE: "develop,debug"
+            XDEBUG_START: "yes"
+            XDEBUG_CLIENT_HOST: "host.docker.internal"
         ports:
             - "80:80"
             # - "8000:8000"
