@@ -11,5 +11,13 @@ if [ -f .env ] && ! grep -q '^LARADO_IMAGE=' .env; then
     curl -fsSL "$BASE/.env.larado.example" >> .env
     echo "larado vars appended to .env"
 fi
-[ -n "$PHP_VERSION" ] && [ -f .env ] && sed -i.bak "s/^PHP_VERSION=.*/PHP_VERSION=$PHP_VERSION/" .env && rm -f .env.bak
+if [ -n "$PHP_VERSION" ]; then
+    [ -f .env ] || { echo "no .env here: create it, then re-run" >&2; exit 1; }
+    if grep -q '^PHP_VERSION=' .env; then
+        sed -i.bak "s/^PHP_VERSION=.*/PHP_VERSION=$PHP_VERSION/" .env && rm -f .env.bak
+    else
+        printf 'PHP_VERSION=%s\n' "$PHP_VERSION" >> .env
+    fi
+    echo "PHP_VERSION=$PHP_VERSION"
+fi
 echo "set DB_HOST=mysql REDIS_HOST=redis in .env, then: docker compose up -d --build"
