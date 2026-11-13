@@ -56,6 +56,7 @@ The file is deliberately not called `compose.override.yml`, because Compose merg
 
 | Variable | Default | Notes |
 |---|---|---|
+| `PHP_VERSION` | `8.4` | Build arg for the base image tag. |
 | `LARADO_IMAGE` | `larado` | Image name, shared by all projects. Tags are `:prod` and `:dev`. Must be lowercase. |
 | `APP_PORT` | `8000` | Host port of the web server (nginx listens on 8080 in the container). |
 | `QUEUE_REPLICAS` | `2` | Number of queue workers. |
@@ -116,4 +117,10 @@ Several projects on one machine collide on `3306`, `6379` and `8080`. Change `FO
 
 ## PHP version
 
-`PHP_VERSION` is a build arg, default `8.4`. Change it in the `Dockerfile`, or add `args: PHP_VERSION: "8.5"` under `build:`.
+Default is `8.4`. Pick another when installing:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/mnr73/larado/main/install.sh | PHP_VERSION=8.3 sh
+```
+
+Or change `PHP_VERSION` in `.env` later and run `docker compose up -d --build`. The value is the tag prefix of `serversideup/php:<version>-fpm-nginx`.

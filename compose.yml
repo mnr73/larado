@@ -3,6 +3,8 @@ x-app: &app
     build:
         context: .
         target: prod
+        args:
+            PHP_VERSION: "${PHP_VERSION:-8.4}"
     image: "${LARADO_IMAGE:-larado}:prod"
     restart: unless-stopped
     volumes:
