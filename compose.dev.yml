@@ -3,6 +3,7 @@ x-dev: &dev
     build:
         target: dev
         args:
+            PHP_VERSION: "${PHP_VERSION:-8.4}"
             USER_ID: "${PUID:-1000}"
             GROUP_ID: "${PGID:-1000}"
     image: "${LARADO_IMAGE:-larado}:dev"
