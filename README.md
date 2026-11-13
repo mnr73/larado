@@ -9,8 +9,8 @@ Docker setup for Laravel on top of [serversideup/php](https://serversideup.net/o
 | `app` | nginx + PHP-FPM. Runs migrations and the Laravel caches at start (`AUTORUN_ENABLED`). |
 | `queue` | `queue:work`, `QUEUE_REPLICAS` copies (default 2), with a healthcheck. |
 | `scheduler` | `schedule:work`, with a healthcheck. |
-| `mysql` | MySQL 8.4. |
-| `redis` | Redis 7. |
+| `mysql` | MySQL 8.4. Settings: `larado/mysql.cnf`. |
+| `redis` | Redis 7. Settings: `larado/redis.conf`. |
 | `phpmyadmin` | Dev only. |
 
 Extensions: the image ships with `pcntl`, `redis`, `zip`, `pdo_mysql` and `opcache`. `Dockerfile` adds `gd intl exif sockets mysqli`. The `dev` stage also adds `xdebug`.
@@ -23,7 +23,7 @@ In the root of a Laravel project:
 curl -fsSL https://raw.githubusercontent.com/mnr73/larado/main/install.sh | sh
 ```
 
-This downloads `Dockerfile`, `compose.yml` and `compose.dev.yml`, and appends the larado variables from `.env.larado.example` to `.env`. It never touches an existing `LARADO_IMAGE`.
+This downloads `Dockerfile`, `compose.yml`, `compose.dev.yml` and `larado/mysql.cnf` + `larado/redis.conf` (these two are never overwritten once they exist), and appends the larado variables from `.env.larado.example` to `.env`. It never touches an existing `LARADO_IMAGE`.
 
 Then set the hosts in `.env`:
 
@@ -68,6 +68,18 @@ The file is deliberately not called `compose.override.yml`, because Compose merg
 | `PUID` / `PGID` | `1000` | Dev only. Build-time user id of `www-data`. |
 
 Any other `PHP_*` or `NGINX_*` setting works as an env var; see the [variable reference](https://serversideup.net/open-source/docker-php/docs/reference/environment-variable-specification).
+
+## MySQL and Redis settings
+
+`larado/mysql.cnf` and `larado/redis.conf` are mounted read-only into the containers. Every setting is commented out, so the server defaults apply. Uncomment or add what you need and restart:
+
+```sh
+docker compose restart mysql   # or redis
+```
+
+No image build is needed. Check a value, e.g. `docker compose exec mysql mysql -uroot -p -e "select @@max_connections"`.
+
+Redis starts with `redis-server /usr/local/etc/redis/redis.conf`, so settings must go in that file, not in `command`. Note that `stop-writes-on-bgsave-error no` is commented out: with the default (`yes`), Redis refuses writes when a snapshot fails, which stops queues and cache.
 
 ## Xdebug
 

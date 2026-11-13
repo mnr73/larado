@@ -5,6 +5,9 @@
 set -e
 BASE="${LARADO_URL:-https://raw.githubusercontent.com/mnr73/larado/main}"
 for f in Dockerfile compose.yml compose.dev.yml; do curl -fsSL "$BASE/$f" -o "$f"; done
+# db configs: never overwrite (user edits them)
+mkdir -p larado
+for f in mysql.cnf redis.conf; do [ -f "larado/$f" ] || curl -fsSL "$BASE/larado/$f" -o "larado/$f"; done
 # ponytail: appends once; to change defaults later edit .env by hand.
 if [ -f .env ] && ! grep -q '^LARADO_IMAGE=' .env; then
     printf '\n' >> .env
