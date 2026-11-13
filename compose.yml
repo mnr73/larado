@@ -1,0 +1,78 @@
+# prod base. dev: set COMPOSE_FILE=compose.yml:compose.dev.yml in the local .env only.
+x-app: &app
+    build:
+        context: .
+        target: prod
+    image: "${LARADO_IMAGE:-larado}:prod"
+    restart: unless-stopped
+    volumes:
+        - ".:/var/www/html"
+    depends_on:
+        mysql:
+            condition: service_healthy
+        redis:
+            condition: service_healthy
+
+services:
+    app:
+        <<: *app
+        container_name: "${APP_NAME:-larado}-app"
+        ports:
+            - "${APP_PORT:-8000}:8080"
+        environment:
+            AUTORUN_ENABLED: "true" # migrate + caches; only on this service
+            PHP_OPCACHE_ENABLE: "1"
+            PHP_MEMORY_LIMIT: "${PHP_MEMORY_LIMIT:-512M}"
+
+    queue:
+        <<: *app
+        command: ["php", "artisan", "queue:work", "--tries=2", "--max-jobs=500", "--max-time=1800"]
+        stop_signal: SIGTERM
+        stop_grace_period: 60s
+        deploy:
+            replicas: "${QUEUE_REPLICAS:-2}"
+        healthcheck:
+            test: ["CMD", "healthcheck-queue"]
+            start_period: 10s
+
+    scheduler:
+        <<: *app
+        container_name: "${APP_NAME:-larado}-scheduler"
+        command: ["php", "artisan", "schedule:work"]
+        stop_signal: SIGTERM
+        healthcheck:
+            test: ["CMD", "healthcheck-schedule"]
+            start_period: 10s
+
+    mysql:
+        image: mysql:8.4
+        container_name: "${APP_NAME:-larado}-mysql"
+        restart: unless-stopped
+        command: ["--max-connections=500"]
+        environment:
+            MYSQL_ROOT_PASSWORD: "${DB_PASSWORD}"
+            MYSQL_DATABASE: "${DB_DATABASE}"
+            MYSQL_USER: "${DB_USERNAME}"
+            MYSQL_PASSWORD: "${DB_PASSWORD}"
+        cap_add: [SYS_NICE]
+        volumes:
+            - "mysql:/var/lib/mysql"
+        healthcheck:
+            test: ["CMD-SHELL", "mysqladmin ping -p$$MYSQL_ROOT_PASSWORD"]
+            retries: 10
+            interval: 5s
+
+    redis:
+        image: redis:7-alpine
+        container_name: "${APP_NAME:-larado}-redis"
+        restart: unless-stopped
+        volumes:
+            - "redis:/data"
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            retries: 10
+            interval: 5s
+
+volumes:
+    mysql:
+    redis:

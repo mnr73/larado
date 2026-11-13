@@ -1,0 +1,37 @@
+# local dev only: enabled by COMPOSE_FILE=compose.yml:compose.dev.yml in the local .env
+x-dev: &dev
+    build:
+        target: dev
+        args:
+            USER_ID: "${PUID:-1000}"
+            GROUP_ID: "${PGID:-1000}"
+    image: "${LARADO_IMAGE:-larado}:dev"
+    environment: &dev-env
+        AUTORUN_ENABLED: "false"
+        PHP_OPCACHE_ENABLE: "0"
+        XDEBUG_MODE: "${XDEBUG_MODE:-develop,debug}"
+        XDEBUG_CONFIG: "client_host=host.docker.internal client_port=9003 start_with_request=yes"
+    extra_hosts:
+        - "host.docker.internal:host-gateway"
+
+services:
+    app:
+        <<: *dev
+        environment:
+            <<: *dev-env
+            AUTORUN_ENABLED: "true"
+    queue: *dev
+    scheduler: *dev
+    mysql:
+        ports:
+            - "${FORWARD_DB_PORT:-3306}:3306"
+    redis:
+        ports:
+            - "${FORWARD_REDIS_PORT:-6379}:6379"
+    phpmyadmin:
+        image: phpmyadmin
+        restart: unless-stopped
+        environment:
+            PMA_HOST: mysql
+        ports:
+            - "${PMA_PORT:-8080}:80"
