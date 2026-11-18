@@ -22,7 +22,8 @@ services:
         ports:
             - "${APP_PORT:-8000}:8080"
         environment:
-            AUTORUN_ENABLED: "true" # migrate + caches; only on this service
+            AUTORUN_ENABLED: "true" # caches & optimization only on this service
+            AUTORUN_LARAVEL_MIGRATION: "false" # prevent auto run migration in production
             PHP_OPCACHE_ENABLE: "1"
             PHP_MEMORY_LIMIT: "${PHP_MEMORY_LIMIT:-512M}"
 
