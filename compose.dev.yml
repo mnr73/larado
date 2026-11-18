@@ -21,6 +21,14 @@ services:
         environment:
             <<: *dev-env
             AUTORUN_ENABLED: "true"
+            # prevent laravel cache and optimization in development
+            AUTORUN_LARAVEL_OPTIMIZE: "false"
+            AUTORUN_LARAVEL_CONFIG_CACHE: "false"
+            AUTORUN_LARAVEL_ROUTE_CACHE: "false"
+            AUTORUN_LARAVEL_VIEW_CACHE: "false"
+            AUTORUN_LARAVEL_EVENT_CACHE: "false"
+            # prevent auto run migrations on container startup
+            AUTORUN_LARAVEL_MIGRATION: "false"
     queue: *dev
     scheduler: *dev
     mysql:
