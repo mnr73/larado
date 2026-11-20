@@ -9,9 +9,14 @@ x-dev: &dev
     image: "${LARADO_IMAGE:-larado}:dev"
     environment: &dev-env
         AUTORUN_ENABLED: "false"
-        PHP_OPCACHE_ENABLE: "0"
-        XDEBUG_MODE: "${XDEBUG_MODE:-develop,debug}"
-        XDEBUG_CONFIG: "client_host=host.docker.internal client_port=9003 start_with_request=yes"
+        # opcache on, re-checking file mtimes on every request so edits show up at once. Without it every request
+        # recompiles ~1000 framework files (~250ms on a Laravel + Filament app).
+        PHP_OPCACHE_ENABLE: "1"
+        PHP_OPCACHE_VALIDATE_TIMESTAMPS: "1"
+        PHP_OPCACHE_REVALIDATE_FREQ: "0"
+        # off by default (it slows every request); see README "Xdebug" to turn it on
+        XDEBUG_MODE: "${XDEBUG_MODE:-off}"
+        XDEBUG_CONFIG: "client_host=host.docker.internal client_port=9003 start_with_request=trigger"
     extra_hosts:
         - "host.docker.internal:host-gateway"
 
@@ -20,7 +25,14 @@ services:
         <<: *dev
         environment:
             <<: *dev-env
-            AUTORUN_ENABLED: "true"
+            AUTORUN_ENABLED: "true" # migrations only: no Laravel caches in dev
+            # cached config makes `php artisan test` run on the real .env (cache/queue drivers) and new routes 404
+            # until optimize:clear. Each flag caches on its own, so all are off.
+            AUTORUN_LARAVEL_OPTIMIZE: "false"
+            AUTORUN_LARAVEL_CONFIG_CACHE: "false"
+            AUTORUN_LARAVEL_ROUTE_CACHE: "false"
+            AUTORUN_LARAVEL_VIEW_CACHE: "false"
+            AUTORUN_LARAVEL_EVENT_CACHE: "false"
     queue: *dev
     scheduler: *dev
     mysql:

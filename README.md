@@ -6,7 +6,7 @@ Docker setup for Laravel on top of [serversideup/php](https://serversideup.net/o
 
 | Service | Role |
 |---|---|
-| `app` | nginx + PHP-FPM. Runs migrations and the Laravel caches at start (`AUTORUN_ENABLED`). |
+| `app` | nginx + PHP-FPM. Runs migrations at start (`AUTORUN_ENABLED`), plus the Laravel caches in production. |
 | `queue` | `queue:work`, `QUEUE_REPLICAS` copies (default 2), with a healthcheck. |
 | `scheduler` | `schedule:work`, with a healthcheck. |
 | `mysql` | MySQL 8.4. Settings: `larado/mysql.cnf`. |
@@ -64,7 +64,7 @@ The file is deliberately not called `compose.override.yml`, because Compose merg
 | `FORWARD_DB_PORT` | `3306` | Dev only. Not `DB_PORT`, because Laravel reads that. |
 | `FORWARD_REDIS_PORT` | `6379` | Dev only. |
 | `PMA_PORT` | `8080` | Dev only. |
-| `XDEBUG_MODE` | `develop,debug` | Dev only. |
+| `XDEBUG_MODE` | `off` | Dev only. `debug` turns on step debugging (see [Xdebug](#xdebug)). |
 | `PUID` / `PGID` | `1000` | Dev only. Build-time user id of `www-data`. |
 
 Any other `PHP_*` or `NGINX_*` setting works as an env var; see the [variable reference](https://serversideup.net/open-source/docker-php/docs/reference/environment-variable-specification).
@@ -83,7 +83,20 @@ Redis starts with `redis-server /usr/local/etc/redis/redis.conf`, so settings mu
 
 ## Xdebug
 
-Port `9003`, `start_with_request=yes`, host `host.docker.internal`. Point your IDE at that port. Turn it off with `XDEBUG_MODE=off` and `docker compose up -d`.
+Installed in the dev image but **off by default**, because it slows every request. To debug:
+
+1. In `.env` set `XDEBUG_MODE=debug`, then `docker compose up -d` (no build needed).
+2. In the IDE listen on port `9003` and map the project root to `/var/www/html`.
+3. Xdebug starts only for requests that carry the trigger (`start_with_request=trigger`): use a browser extension such as "Xdebug helper", or add `?XDEBUG_TRIGGER=1` to the URL / `XDEBUG_TRIGGER=1` cookie. For CLI: `docker compose exec -e XDEBUG_TRIGGER=1 app php artisan ...`.
+4. When done, set `XDEBUG_MODE=off` again and `docker compose up -d`.
+
+Want every request debugged instead? Set `XDEBUG_CONFIG` on the service with `start_with_request=yes`. `develop` mode (nicer error output) also costs time on every request.
+
+## Dev speed
+
+`compose.dev.yml` keeps OPcache on with `validate_timestamps=1, revalidate_freq=0`: changed files are recompiled on the next request, the rest stays cached. Measured on a Laravel + Filament API: 300-450ms per request with OPcache off and xdebug on, 30-50ms with these defaults.
+
+Dev does not run `optimize` on start. Cached config would make `php artisan test` use your real `.env` instead of `phpunit.xml`, and new routes would 404 until `php artisan optimize:clear`.
 
 ## File ownership
 
@@ -111,6 +124,7 @@ A `500 Vite manifest not found` with healthy containers means the frontend isn't
 - Run only `compose.yml` (no `COMPOSE_FILE` in the server `.env`).
 - Behind a reverse proxy, set `TRUSTED_PROXIES` on `app`. See the [docs](https://serversideup.net/open-source/docker-php/docs/deployment-and-production/configuring-trusted-proxies).
 - `AUTORUN_ENABLED` is set on `app` only. Setting it on a worker makes it migrate on start.
+- Production OPcache does not check file times (`validate_timestamps=0`) and the code is bind-mounted: after deploying new code run `docker compose up -d --force-recreate` (or `restart app queue scheduler`), otherwise the old code keeps running.
 - Workers use `stop_signal: SIGTERM`. The image default is `SIGQUIT`, which Laravel workers ignore. `stop_grace_period` is 60s; raise it for long jobs.
 - Use Horizon instead of `queue`? Replace the `queue` command with `php artisan horizon` and the healthcheck with `healthcheck-horizon`.
 
